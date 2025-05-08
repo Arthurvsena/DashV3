@@ -347,30 +347,23 @@ def get_produto_campeao(schema, data_inicio, data_fim):
     return result
 
 def get_total_produtos_vendidos(schema, data_inicio, data_fim):
-    from utils import get_connection
-    conn = get_connection()
-    cur = conn.cursor()
-
     query = f"""
         WITH notas_saida AS (
-            SELECT cliente_cpf_cnpj FROM {schema}.tiny_nfs
+            SELECT REGEXP_REPLACE(cliente_cpf_cnpj, '[^0-9]', '', 'g') AS cpf_cnpj
+            FROM {schema}.tiny_nfs
             WHERE tipo = 'S' AND "createdAt" BETWEEN '{data_inicio}' AND '{data_fim}'
         ),
         pedidos_filtrados AS (
-            SELECT id FROM {schema}.tiny_orders
-            WHERE cliente_cpf_cnpj IN (SELECT cliente_cpf_cnpj FROM notas_saida)
-        ),
-        itens_venda AS (
-            SELECT quantidade FROM {schema}.tiny_order_item
-            WHERE order_id IN (SELECT id FROM pedidos_filtrados)
+            SELECT id
+            FROM {schema}.tiny_orders
+            WHERE REGEXP_REPLACE(cliente_cpf_cnpj, '[^0-9]', '', 'g') IN (SELECT cpf_cnpj FROM notas_saida)
         )
-        SELECT SUM(quantidade::numeric) FROM itens_venda;
+        SELECT SUM(CAST(quantidade AS NUMERIC)) AS total
+        FROM {schema}.tiny_order_item
+        WHERE order_id IN (SELECT id FROM pedidos_filtrados);
     """
-    cur.execute(query)
-    result = cur.fetchone()
-    cur.close()
-    conn.close()
-    return int(result[0]) if result and result[0] else 0
+    df = execute_query(schema, query)
+    return int(df["total"][0]) if not df.empty and df["total"][0] else 0
 
 def get_produto_mais_devolvido(schema, data_inicio, data_fim):
     from utils import get_connection
@@ -446,8 +439,6 @@ def get_top_devolved_products_query(schema):
     return execute_query(schema, query)
 
 def get_total_produtos_sem_venda(schema, start_date, end_date):
-    conn = get_connection()
-    cur = conn.cursor()
     query = f"""
         WITH notas_saida AS (
             SELECT REGEXP_REPLACE(cliente_cpf_cnpj, '[^0-9]', '', 'g') AS cpf_cnpj
@@ -465,21 +456,16 @@ def get_total_produtos_sem_venda(schema, start_date, end_date):
             FROM {schema}.tiny_order_item
             WHERE order_id IN (SELECT id FROM pedidos_filtrados)
         )
-        SELECT COUNT(*)
+        SELECT COUNT(*) AS total
         FROM {schema}.tiny_products
-        WHERE estoque > 0
+        WHERE "tipoVariacao" = 'P'
           AND codigo IS NOT NULL
-          AND codigo NOT IN (SELECT codigo FROM produtos_vendidos)
+          AND codigo NOT IN (SELECT codigo FROM produtos_vendidos);
     """
-    cur.execute(query)
-    result = cur.fetchone()
-    cur.close()
-    conn.close()
-    return result[0] if result else 0
+    df = execute_query(schema, query)
+    return int(df["total"][0]) if not df.empty and df["total"][0] else 0
 
 def get_faturamento_por_estado(schema, data_inicio, data_fim):
-    conn = get_connection()
-    cur = conn.cursor()
     query = f"""
         WITH notas_saida AS (
             SELECT REGEXP_REPLACE(cliente_cpf_cnpj, '[^0-9]', '', 'g') AS cpf_cnpj
@@ -491,62 +477,50 @@ def get_faturamento_por_estado(schema, data_inicio, data_fim):
             FROM {schema}.tiny_orders
             WHERE REGEXP_REPLACE(cliente_cpf_cnpj, '[^0-9]', '', 'g') IN (SELECT cpf_cnpj FROM notas_saida)
         )
-        SELECT cliente_uf AS estado, SUM(total_pedido::numeric) AS total_faturado
+        SELECT cliente_uf AS estado, SUM(total_pedido::numeric) AS valor
         FROM pedidos_filtrados
         WHERE cliente_uf IS NOT NULL
         GROUP BY cliente_uf
-        ORDER BY total_faturado DESC;
+        ORDER BY valor DESC;
     """
-    cur.execute(query)
-    resultados = cur.fetchall()
-    cur.close()
-    conn.close()
-    return [{"estado": r[0], "valor": float(r[1])} for r in resultados]
+    df = execute_query(schema, query)
+    return df.to_dict(orient="records")
 
 def get_curva_abc(schema: str, data_inicio: str, data_fim: str):
-    from database import executar_query_df
-
-    query = f'''
+    query = f"""
         SELECT 
             oi.codigo AS sku,
             p.nome AS descricao,
-            p."tipoVariacao",
-            p.marca,
             SUM(CAST(oi.quantidade AS NUMERIC)) AS quantidade_total,
             SUM(CAST(oi.valor_unitario AS NUMERIC) * CAST(oi.quantidade AS NUMERIC)) AS faturamento
         FROM {schema}.tiny_order_item oi
         JOIN {schema}.tiny_orders o ON oi.order_id = o.id
-        JOIN {schema}.tiny_nfs nfs ON o.cliente_cpf_cnpj = nfs.cliente_cpf_cnpj
+        JOIN {schema}.tiny_nfs nfs ON o.numero_ecommerce = nfs.numero_ecommerce
         JOIN {schema}.tiny_products p ON oi.codigo = p.codigo
-        WHERE nfs.tipo = 'S' 
+        WHERE nfs.tipo = 'S'
           AND nfs.numero_ecommerce IS NOT NULL
           AND nfs."createdAt" BETWEEN '{data_inicio}' AND '{data_fim}'
-        GROUP BY oi.codigo, p.nome, p.marca, p."tipoVariacao"
-        ORDER BY faturamento DESC
-    '''
-    return executar_query_df(query)
-
-def get_curva_abc_por_pai(schema: str, data_inicio: str, data_fim: str):
-    query = f"""
-        SELECT 
-            SPLIT_PART(i.codigo, '-', 1) AS codigo_base
-            p.nome,
-            p.marca,
-            SUM(CAST(i.quantidade AS NUMERIC) * CAST(i.valor_unitario AS NUMERIC)) AS faturamento
-        FROM {schema}.tiny_order_item i
-        JOIN {schema}.tiny_orders o ON o.id = i.order_id
-        JOIN {schema}.tiny_products p ON p.codigo = i.codigo
-        WHERE o."createdAt" BETWEEN %s AND %s
-        AND p."tipoVariacao" = 'P'
-        GROUP BY codigo_base, p.nome, p.marca
+        GROUP BY oi.codigo, p.nome
         ORDER BY faturamento DESC;
     """
-    dados = executar_query_lista(query, (data_inicio, data_fim))
-    if not dados:
-        return pd.DataFrame()
 
-    df = pd.DataFrame(dados, columns=['produto', 'nome', 'marca', 'faturamento'])
-    return df
+    df = execute_query(schema, query)
+    if df.empty:
+        return []
+
+    df["percentual_acumulado"] = (df["faturamento"].cumsum() / df["faturamento"].sum()) * 100
+    df["percentual_acumulado"] = df["percentual_acumulado"].round(2)
+
+    def classificar(p):
+        if p <= 80:
+            return "A"
+        elif p <= 95:
+            return "B"
+        return "C"
+
+    df["classe_abc"] = df["percentual_acumulado"].apply(classificar)
+    df["nome"] = df["descricao"]  # Corrige o undefined
+    return df[["nome", "faturamento", "percentual_acumulado", "classe_abc"]].to_dict(orient="records")
 
 def get_curva_abc_por_pai(schema: str, data_inicio: str, data_fim: str, marca: str = None):
     filtro_marca = "AND p.marca = %s" if marca and marca != 'Todas' else ""
@@ -554,7 +528,10 @@ def get_curva_abc_por_pai(schema: str, data_inicio: str, data_fim: str, marca: s
 
     query = f"""
         SELECT 
-            LEFT(i.codigo, POSITION('-' IN i.codigo) - 1) AS codigo_base,
+            CASE
+                WHEN POSITION('-' IN i.codigo) > 0 THEN LEFT(i.codigo, POSITION('-' IN i.codigo) - 1)
+                ELSE i.codigo
+            END AS produto,
             SUM(CAST(i.quantidade AS NUMERIC) * CAST(i.valor_unitario AS NUMERIC)) AS faturamento
         FROM {schema}.tiny_order_item i
         JOIN {schema}.tiny_orders o ON o.id = i.order_id
@@ -562,15 +539,29 @@ def get_curva_abc_por_pai(schema: str, data_inicio: str, data_fim: str, marca: s
         WHERE o."createdAt" BETWEEN %s AND %s
         {filtro_marca}
         AND p."tipoVariacao" = 'P'
-        GROUP BY codigo_base
+        GROUP BY produto
         ORDER BY faturamento DESC;
     """
+
     dados = executar_query_lista(query, params)
     if not dados:
-        return pd.DataFrame()
+        return []
 
     df = pd.DataFrame(dados, columns=['produto', 'faturamento'])
-    return df
+
+    df["percentual_acumulado"] = (df["faturamento"].cumsum() / df["faturamento"].sum()) * 100
+    df["percentual_acumulado"] = df["percentual_acumulado"].round(2)
+
+    def classificar(p):
+        if p <= 80:
+            return "A"
+        elif p <= 95:
+            return "B"
+        return "C"
+
+    df["classe_abc"] = df["percentual_acumulado"].apply(classificar)
+    df["nome"] = df["produto"]
+    return df[["nome", "faturamento", "percentual_acumulado", "classe_abc"]].to_dict(orient="records")
 
 def get_curva_abc_por_marca(schema: str, data_inicio: str, data_fim: str, marca: str = None):
     filtro_marca = "AND p.marca = %s" if marca and marca != 'Todas' else ""
@@ -589,13 +580,26 @@ def get_curva_abc_por_marca(schema: str, data_inicio: str, data_fim: str, marca:
         GROUP BY p.marca
         ORDER BY faturamento DESC;
     """
+
     dados = executar_query_lista(query, params)
     if not dados:
-        return pd.DataFrame()
+        return []
 
-    df = pd.DataFrame(dados, columns=['marca', 'faturamento'])
-    df['produto'] = df['marca']
-    return df[['produto', 'marca', 'faturamento']]
+    df = pd.DataFrame(dados, columns=['produto', 'faturamento'])
+
+    df["percentual_acumulado"] = (df["faturamento"].cumsum() / df["faturamento"].sum()) * 100
+    df["percentual_acumulado"] = df["percentual_acumulado"].round(2)
+
+    def classificar(p):
+        if p <= 80:
+            return "A"
+        elif p <= 95:
+            return "B"
+        return "C"
+
+    df["classe_abc"] = df["percentual_acumulado"].apply(classificar)
+    df["nome"] = df["produto"]
+    return df[["nome", "faturamento", "percentual_acumulado", "classe_abc"]].to_dict(orient="records")
 
 def get_marcas_disponiveis(schema: str):
     query = f"""

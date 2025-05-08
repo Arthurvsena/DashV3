@@ -7,6 +7,10 @@ from queries import (
     get_total_produtos_sem_venda,
     get_faturamento_por_estado,
     get_produtos_por_status,
+    get_curva_abc,
+    get_curva_abc_por_pai,
+    get_curva_abc_por_marca,
+    get_marcas_disponiveis
 )
 from utils import get_data_periodo
 
@@ -57,3 +61,26 @@ def faturamento_por_estado(request: Request, start_date: str = None, end_date: s
     schema = get_schema(request)
     start, end = get_data_periodo(start_date, end_date)
     return get_faturamento_por_estado(schema, start, end)
+
+@router.get("/curva-abc")
+def curva_abc(
+    request: Request,
+    start_date: str = None,
+    end_date: str = None,
+    tipo: str = "sku",  # sku, pai ou marca
+    marca: str = None
+):
+    schema = get_schema(request)
+    start, end = get_data_periodo(start_date, end_date)
+
+    if tipo == "pai":
+        return get_curva_abc_por_pai(schema, start, end, marca)
+    elif tipo == "marca":
+        return get_curva_abc_por_marca(schema, start, end, marca)
+    else:
+        return get_curva_abc(schema, start, end)
+
+@router.get("/marcas")
+def listar_marcas(request: Request):
+    schema = get_schema(request)
+    return get_marcas_disponiveis(schema)

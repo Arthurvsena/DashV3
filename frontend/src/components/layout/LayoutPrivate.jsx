@@ -34,7 +34,7 @@ export default function LayoutPrivate() {
       <div className="ml-0 md:ml-[250px]">
         <Topbar
           toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-          showDateFilter={isDashboard}
+          showDateFilter={isDashboard || isProdutos}
           onOpenFilter={() => setFilterOpen(true)}
         />
 

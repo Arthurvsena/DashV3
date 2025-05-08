@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from "react";
-import Plot from "react-plotly.js";
 import api from "../services/api";
 import { useOutletContext } from "react-router-dom";
+import "./Produtos.css";
+import CurvaABC from "../components/charts/CurvaAbc";
+import ReactECharts from "echarts-for-react";
+import geoJson from "../data/brazil-states.json";
+import MapaFaturamento from "../components/charts/MapaFaturamento";
+import * as echarts from "echarts";
+
+echarts.registerMap("brazil", geoJson);
 
 const Produtos = () => {
   const { startDate, endDate } = useOutletContext();
@@ -15,8 +22,12 @@ const Produtos = () => {
   const [capitalInvestido, setCapitalInvestido] = useState(0);
   const [potencialRetorno, setPotencialRetorno] = useState(0);
   const [mapaData, setMapaData] = useState([]);
+  const [dadosAbc, setDadosAbc] = useState([]);
   const [statusFiltro, setStatusFiltro] = useState("Todos");
   const [loading, setLoading] = useState(true);
+  const [tipoCurva, setTipoCurva] = useState("sku");
+  const [marcaSelecionada, setMarcaSelecionada] = useState("Todas");
+  const [marcasDisponiveis, setMarcasDisponiveis] = useState([]);
 
   const token = localStorage.getItem("token");
   const schema = localStorage.getItem("selectedSchema");
@@ -24,6 +35,24 @@ const Produtos = () => {
   const headers = {
     Authorization: `Bearer ${token}`,
     "x-schema": schema,
+  };
+
+  const carregarCurvaAbc = async () => {
+    if (!startDate || !endDate) return;
+  
+    const start_date = startDate.toISOString().split("T")[0];
+    const end_date = endDate.toISOString().split("T")[0];
+  
+    try {
+      const response = await api.get(
+        `/api/curva-abc?start_date=${start_date}&end_date=${end_date}&tipo=${tipoCurva}&marca=${marcaSelecionada === "Todas" ? "" : marcaSelecionada}`,
+        { headers }
+      );
+      setDadosAbc(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      console.error("Erro ao carregar Curva ABC:", err);
+      setDadosAbc([]);
+    }
   };
 
   const carregarDados = async () => {
@@ -35,17 +64,12 @@ const Produtos = () => {
     const start_date = startDate.toISOString().split("T")[0];
     const end_date = endDate.toISOString().split("T")[0];
 
-    console.log("📦 Buscando produtos:", {
-      start_date,
-      end_date,
-      statusFiltro,
-    });
-
     try {
       setLoading(true);
 
       const [
         campeao,
+        abc,
         devolvido,
         vendidos,
         semVenda,
@@ -53,6 +77,10 @@ const Produtos = () => {
         estados,
       ] = await Promise.all([
         api.get(`/api/produto-campeao?start_date=${start_date}&end_date=${end_date}`, { headers }),
+        api.get(
+          `/api/curva-abc?start_date=${start_date}&end_date=${end_date}&tipo=${tipoCurva}&marca=${marcaSelecionada === "Todas" ? "" : marcaSelecionada}`,
+          { headers }
+        ),
         api.get(`/api/produto-mais-devolvido?start_date=${start_date}&end_date=${end_date}`, { headers }),
         api.get(`/api/total-vendidos?start_date=${start_date}&end_date=${end_date}`, { headers }),
         api.get(`/api/sem-venda?start_date=${start_date}&end_date=${end_date}`, { headers }),
@@ -67,7 +95,24 @@ const Produtos = () => {
       setTotalVendidos(vendidos.data?.total || 0);
       setProdutosSemVenda(semVenda.data?.total || 0);
       setProdutos(listaProdutos.data || []);
-      setMapaData(estados.data || []);
+      const estadosMap = {
+        AC: "Acre", AL: "Alagoas", AP: "Amapá", AM: "Amazonas",
+        BA: "Bahia", CE: "Ceará", DF: "Distrito Federal", ES: "Espírito Santo",
+        GO: "Goiás", MA: "Maranhão", MT: "Mato Grosso", MS: "Mato Grosso do Sul",
+        MG: "Minas Gerais", PA: "Pará", PB: "Paraíba", PR: "Paraná",
+        PE: "Pernambuco", PI: "Piauí", RJ: "Rio de Janeiro", RN: "Rio Grande do Norte",
+        RS: "Rio Grande do Sul", RO: "Rondônia", RR: "Roraima", SC: "Santa Catarina",
+        SP: "São Paulo", SE: "Sergipe", TO: "Tocantins"
+      };
+      
+      setMapaData(
+        (estados.data || []).map((e) => ({
+          name: estadosMap[e.estado] || e.estado,
+          value: Number(e.valor) || 0
+        }))
+      );
+      setDadosAbc(Array.isArray(abc.data) ? abc.data : []);
+      
 
       let capital = 0;
       let retorno = 0;
@@ -89,7 +134,49 @@ const Produtos = () => {
     carregarDados();
   }, [statusFiltro, startDate, endDate]);
 
+  useEffect(() => {
+    api.get("/api/marcas", { headers }).then((res) => {
+      setMarcasDisponiveis(["Todas", ...res.data]);
+    });
+  }, []);
+
+  useEffect(() => {
+  carregarCurvaAbc();
+}, [tipoCurva, marcaSelecionada, startDate, endDate]);
+
   if (loading) return <div className="text-white">🔄 Carregando dados...</div>;
+
+  const mapaOption = {
+    tooltip: {
+      trigger: "item",
+      formatter: "{b}: R$ {c}"
+    },
+    visualMap: {
+      min: 0,
+      max: Math.max(...mapaData.map(e => e.valor || 0), 100),
+      left: "left",
+      bottom: "0",
+      text: ["Alto", "Baixo"],
+      inRange: {
+        color: ["#e0f3f8", "#0077b6"]
+      },
+      calculable: true,
+      textStyle: { color: "#fff" }
+    },
+    series: [
+      {
+        name: "Faturamento",
+        type: "map",
+        map: "brazil",
+        roam: true,
+        emphasis: {
+          label: { show: true },
+          itemStyle: { areaColor: "#f2d5ad" }
+        },
+        data: mapaData
+      }
+    ]
+  };
 
   return (
     <div className="dashboard-container">
@@ -104,29 +191,36 @@ const Produtos = () => {
         <Card title="📈 Potencial de Retorno" value={`R$ ${potencialRetorno.toFixed(2)}`} />
       </div>
 
-      <div className="bg-dark rounded-lg p-4 mb-6 text-white">
-        <h2 className="graph-title">🗺️ Faturamento por Estado</h2>
-        <Plot
-          data={[
-            {
-              type: "choropleth",
-              locationmode: "ISO-3",
-              locations: mapaData.map((e) => e.estado),
-              z: mapaData.map((e) => e.valor),
-              colorscale: "YlOrRd",
-              text: mapaData.map((e) => `${e.estado}: R$ ${e.valor.toFixed(2)}`),
-            },
-          ]}
-          layout={{
-            geo: { scope: "south america" },
-            paper_bgcolor: "#1e1e1e",
-            plot_bgcolor: "#1e1e1e",
-            font: { color: "white" },
-            margin: { t: 0, b: 0 },
-          }}
-          style={{ width: "100%", height: "400px" }}
-        />
+      <div className="graficos-container">
+      <div className="grafico-curva">
+      <div className="flex gap-4 mb-4">
+      <h1>Curva ABC</h1>
+      <h4>Filtre o grafico através das opções abaixo:</h4>
+      <select value={tipoCurva} onChange={(e) => setTipoCurva(e.target.value)}>
+        <option value="sku">Por SKU</option>
+        <option value="pai">Por Produto Pai</option>
+        <option value="marca">Por Marca</option>
+      </select>
+
+      {tipoCurva === "marca" && (
+        <select value={marcaSelecionada} onChange={(e) => setMarcaSelecionada(e.target.value)}>
+          {marcasDisponiveis.map((m, idx) => (
+            <option key={idx} value={m}>{m}</option>
+          ))}
+        </select>
+      )}
+    </div>
+        <CurvaABC data={dadosAbc} />
       </div>
+      <div className="grafico-mapa">
+        <h2 className="graph-title">🗺️ Faturamento por Estado</h2>
+        {mapaData.length > 0 ? (
+          <MapaFaturamento data={mapaData} />
+        ) : (
+          <p className="text-white mt-4">⏳ Carregando mapa ou sem dados para exibir.</p>
+        )}
+      </div>
+    </div>
 
       <div className="table-container">
         <h2 className="graph-title">📄 Lista de Produtos</h2>
