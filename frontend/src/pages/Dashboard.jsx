@@ -26,6 +26,12 @@ export default function Dashboard({ startDate, endDate }) {
   const token = localStorage.getItem("token");
   const schema = localStorage.getItem("selectedSchema");
 
+  useEffect(() => {
+  const token = localStorage.getItem('token');
+  const payload = token ? JSON.parse(atob(token.split('.')[1])) : null;
+  console.log("📊 DASHBOARD PAYLOAD:", payload);
+}, []);
+
   const fetchData = async () => {
     try {
       setLoading(true);

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
+import "./Login.css"
 
 
 export default function Login() {
@@ -46,6 +47,7 @@ export default function Login() {
   return (
     <div className="login-container">
       <div className="login-card">
+        <img src="../assets/logo.png" alt="Logo Help Seller" className="logo" />
         <h2 className="login-title">🔐 Acesse seu painel</h2>
         <form onSubmit={handleSubmit} className="login-form">
           <label>Usuário</label>

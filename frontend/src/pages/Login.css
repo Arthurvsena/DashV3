@@ -1,0 +1,165 @@
+/* Reset básico */
+body, html {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(to bottom right, #1e1e2e, #11111b);
+  height: 100vh;
+}
+
+/* Container centralizado */
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: white;
+  position: relative;
+}
+
+/* Card de login */
+.login-card {
+  background: #1f1f2d;
+  padding: 40px;
+  border-radius: 16px;
+  width: 350px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.4);
+  text-align: center;
+  position: relative;
+}
+
+.logo {
+  width: 120px;
+  margin-bottom: 20px;
+}
+
+.login-title {
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  color: #ffffff;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.login-form label {
+  text-align: left;
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+.login-form input {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: #2c2c3c;
+  color: white;
+  font-size: 0.9rem;
+}
+
+.login-form input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #5c6ff9;
+}
+
+.btn-primary {
+  background: linear-gradient(to right, #5c6ff9, #a855f7);
+  border: none;
+  padding: 10px;
+  color: white;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+.btn-primary:hover {
+  opacity: 0.8;
+}
+
+.btn-danger {
+  background: #ff4d4f;
+  border: none;
+  padding: 10px;
+  color: white;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+.btn-danger:hover {
+  background: #ff2f30;
+}
+
+.login-error {
+  color: #ff4d4f;
+  font-size: 0.85rem;
+  margin-top: -10px;
+}
+
+.forgot {
+  margin-top: 15px;
+  font-size: 0.85rem;
+  color: #888;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.forgot:hover {
+  color: #ccc;
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: #252535;
+  padding: 30px;
+  border-radius: 12px;
+  width: 350px;
+  color: white;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+.modal h3 {
+  margin-bottom: 15px;
+}
+
+.modal input {
+  width: 100%;
+  margin-bottom: 15px;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: #2c2c3c;
+  color: white;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* Rodapé */
+.login-container::after {
+  content: 'Desenvolvido por: Help Seller | Desenvolvedor responsável: Arthur Sena';
+  font-size: 0.75rem;
+  color: #666;
+  position: absolute;
+  bottom: 10px;
+}

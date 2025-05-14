@@ -523,23 +523,39 @@ def get_curva_abc(schema: str, data_inicio: str, data_fim: str):
     return df[["nome", "faturamento", "percentual_acumulado", "classe_abc"]].to_dict(orient="records")
 
 def get_curva_abc_por_pai(schema: str, data_inicio: str, data_fim: str, marca: str = None):
-    filtro_marca = "AND p.marca = %s" if marca and marca != 'Todas' else ""
+    filtro_marca = "AND pp.marca = %s" if marca and marca != 'Todas' else ""
     params = (data_inicio, data_fim) if not filtro_marca else (data_inicio, data_fim, marca)
 
     query = f"""
+        WITH produtos_pai AS (
+            SELECT codigo AS codigo_pai, marca
+            FROM {schema}.tiny_products
+            WHERE "tipoVariacao" = 'P'
+        ),
+        produtos_var AS (
+            SELECT codigo, 
+                   -- Tenta encontrar o código pai com maior correspondência por prefixo
+                   (SELECT codigo_pai FROM produtos_pai 
+                    WHERE POSITION(codigo_pai IN codigo) = 1 
+                    ORDER BY LENGTH(codigo_pai) DESC 
+                    LIMIT 1) AS codigo_pai
+            FROM {schema}.tiny_products
+            WHERE "tipoVariacao" = 'V'
+        ),
+        vendas_com_pai AS (
+            SELECT i.*, pv.codigo_pai, pp.marca
+            FROM {schema}.tiny_order_item i
+            JOIN produtos_var pv ON i.codigo = pv.codigo
+            JOIN produtos_pai pp ON pv.codigo_pai = pp.codigo_pai
+            JOIN {schema}.tiny_orders o ON o.id = i.order_id
+            WHERE o."createdAt" BETWEEN %s AND %s
+            {filtro_marca}
+        )
         SELECT 
-            CASE
-                WHEN POSITION('-' IN i.codigo) > 0 THEN LEFT(i.codigo, POSITION('-' IN i.codigo) - 1)
-                ELSE i.codigo
-            END AS produto,
-            SUM(CAST(i.quantidade AS NUMERIC) * CAST(i.valor_unitario AS NUMERIC)) AS faturamento
-        FROM {schema}.tiny_order_item i
-        JOIN {schema}.tiny_orders o ON o.id = i.order_id
-        JOIN {schema}.tiny_products p ON p.codigo = i.codigo
-        WHERE o."createdAt" BETWEEN %s AND %s
-        {filtro_marca}
-        AND p."tipoVariacao" = 'P'
-        GROUP BY produto
+            v.codigo_pai AS produto,
+            SUM(CAST(v.quantidade AS NUMERIC) * CAST(v.valor_unitario AS NUMERIC)) AS faturamento
+        FROM vendas_com_pai v
+        GROUP BY v.codigo_pai
         ORDER BY faturamento DESC;
     """
 
@@ -548,36 +564,45 @@ def get_curva_abc_por_pai(schema: str, data_inicio: str, data_fim: str, marca: s
         return []
 
     df = pd.DataFrame(dados, columns=['produto', 'faturamento'])
-
     df["percentual_acumulado"] = (df["faturamento"].cumsum() / df["faturamento"].sum()) * 100
     df["percentual_acumulado"] = df["percentual_acumulado"].round(2)
-
-    def classificar(p):
-        if p <= 80:
-            return "A"
-        elif p <= 95:
-            return "B"
-        return "C"
-
-    df["classe_abc"] = df["percentual_acumulado"].apply(classificar)
+    df["classe_abc"] = df["percentual_acumulado"].apply(lambda p: "A" if p <= 80 else ("B" if p <= 95 else "C"))
     df["nome"] = df["produto"]
     return df[["nome", "faturamento", "percentual_acumulado", "classe_abc"]].to_dict(orient="records")
 
 def get_curva_abc_por_marca(schema: str, data_inicio: str, data_fim: str, marca: str = None):
-    filtro_marca = "AND p.marca = %s" if marca and marca != 'Todas' else ""
+    filtro_marca = "AND pp.marca = %s" if marca and marca != 'Todas' else ""
     params = (data_inicio, data_fim) if not filtro_marca else (data_inicio, data_fim, marca)
 
     query = f"""
+        WITH produtos_pai AS (
+            SELECT codigo AS codigo_pai, marca
+            FROM {schema}.tiny_products
+            WHERE "tipoVariacao" = 'P'
+        ),
+        produtos_var AS (
+            SELECT codigo, 
+                   (SELECT codigo_pai FROM produtos_pai 
+                    WHERE POSITION(codigo_pai IN codigo) = 1 
+                    ORDER BY LENGTH(codigo_pai) DESC 
+                    LIMIT 1) AS codigo_pai
+            FROM {schema}.tiny_products
+            WHERE "tipoVariacao" = 'V'
+        ),
+        vendas_com_pai AS (
+            SELECT i.*, pv.codigo_pai, pp.marca
+            FROM {schema}.tiny_order_item i
+            JOIN produtos_var pv ON i.codigo = pv.codigo
+            JOIN produtos_pai pp ON pv.codigo_pai = pp.codigo_pai
+            JOIN {schema}.tiny_orders o ON o.id = i.order_id
+            WHERE o."createdAt" BETWEEN %s AND %s
+            {filtro_marca}
+        )
         SELECT 
-            p.marca,
-            SUM(CAST(i.quantidade AS NUMERIC) * CAST(i.valor_unitario AS NUMERIC)) AS faturamento
-        FROM {schema}.tiny_order_item i
-        JOIN {schema}.tiny_orders o ON o.id = i.order_id
-        JOIN {schema}.tiny_products p ON p.codigo = i.codigo
-        WHERE o."createdAt" BETWEEN %s AND %s
-        {filtro_marca}
-        AND p."tipoVariacao" = 'P'
-        GROUP BY p.marca
+            v.marca,
+            SUM(CAST(v.quantidade AS NUMERIC) * CAST(v.valor_unitario AS NUMERIC)) AS faturamento
+        FROM vendas_com_pai v
+        GROUP BY v.marca
         ORDER BY faturamento DESC;
     """
 
@@ -586,18 +611,9 @@ def get_curva_abc_por_marca(schema: str, data_inicio: str, data_fim: str, marca:
         return []
 
     df = pd.DataFrame(dados, columns=['produto', 'faturamento'])
-
     df["percentual_acumulado"] = (df["faturamento"].cumsum() / df["faturamento"].sum()) * 100
     df["percentual_acumulado"] = df["percentual_acumulado"].round(2)
-
-    def classificar(p):
-        if p <= 80:
-            return "A"
-        elif p <= 95:
-            return "B"
-        return "C"
-
-    df["classe_abc"] = df["percentual_acumulado"].apply(classificar)
+    df["classe_abc"] = df["percentual_acumulado"].apply(lambda p: "A" if p <= 80 else ("B" if p <= 95 else "C"))
     df["nome"] = df["produto"]
     return df[["nome", "faturamento", "percentual_acumulado", "classe_abc"]].to_dict(orient="records")
 

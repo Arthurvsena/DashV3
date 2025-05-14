@@ -1,77 +1,96 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import './SelectSchema.css';
 
-export default function SelectSchema() {
+export default function PainelMaster() {
   const navigate = useNavigate();
   const [schemas, setSchemas] = useState([]);
-  const [selected, setSelected] = useState('');
-  const [error, setError] = useState('');
+  const [current, setCurrent] = useState(0);
 
   useEffect(() => {
-    const fetchSchemas = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          navigate("/login");
-          return;
-        }
+    let token = '';
+    try {
+      token = localStorage.getItem("token");
+    } catch (err) {
+      console.warn("localStorage bloqueado:", err);
+    }
 
-        const res = await api.get("/schemas", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+    if (!token) return navigate("/login");
 
-        setSchemas(res.data || []);
-      } catch (err) {
-        console.error("Erro ao buscar schemas:", err);
-        setError("Falha ao buscar schemas.");
-      }
-    };
-
-    fetchSchemas();
+    api.get("/schemas", { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => setSchemas(res.data || []))
+      .catch(console.error);
   }, []);
 
-  const handleConfirm = async () => {
-    if (!selected) {
-      setError("Selecione um schema para continuar.");
-      return;
-    }
-  
-    const token = localStorage.getItem("token");
-  
+  const handleSelect = () => {
+    let token = '';
     try {
-      const res = await api.post("/auth/select-schema", { schema: selected }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-  
-      const novoToken = res.data.access_token;
-  
-      // Substitui o token antigo pelo novo, com o schema embutido
-      localStorage.setItem("token", novoToken);
-      localStorage.setItem("selectedSchema", selected);
-  
-      navigate("/dashboard");
+      token = localStorage.getItem("token");
     } catch (err) {
-      console.error("Erro ao selecionar schema:", err);
-      setError("Erro ao selecionar o schema. Tente novamente.");
+      console.warn("localStorage bloqueado:", err);
     }
+
+    const schema = schemas[current];
+    if (!schema) return;
+
+    api.post("/auth/select-schema", { schema }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(res => {
+      try {
+        localStorage.setItem("token", res.data.access_token);
+        localStorage.setItem("selectedSchema", res.data.schema);
+        setTimeout(() => {
+          window.location.href = "/";  // ou "/" dependendo da sua estrutura
+        }, 100); // pequeno delay garante que o token seja escrito no localStorage
+      } catch (err) {
+        console.warn("Erro ao salvar token:", err);
+      }
+    }).catch(console.error);
+  };
+
+  const handlePrev = () => {
+    setCurrent((prev) => (prev - 1 + schemas.length) % schemas.length);
+  };
+
+  const handleNext = () => {
+    setCurrent((prev) => (prev + 1) % schemas.length);
+  };
+
+  const renderSchema = (offset) => {
+    if (schemas.length === 0) return null;
+
+    const index = (current + offset + schemas.length) % schemas.length;
+    const schema = schemas[index];
+    if (!schema) return null;
+
+    return (
+      <div
+        key={schema}
+        className={`schema-card ${offset === 0 ? 'active' : ''}`}
+        style={{ transform: `scale(${offset === 0 ? 1 : 0.9})`, opacity: offset === 0 ? 1 : 0.5 }}
+      >
+        <span>{schema.replace('_tiny', '').replace(/_/g, ' ')}</span>
+      </div>
+    );
   };
 
   return (
-    <div className="select-container">
-      <h2>📁 Escolha o schema para acessar:</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+    <div className="painel-container">
+      <h2>Painel Master</h2>
+      <p className="subtitulo">Selecione o schema que deseja acessar:</p>
 
-      <select value={selected} onChange={(e) => setSelected(e.target.value)}>
-        <option value="">-- Selecione --</option>
-        {schemas.map((schema, idx) => (
-          <option key={idx} value={schema}>
-            {schema}
-          </option>
-        ))}
-      </select>
+      <div className="carousel-container">
+        <button className="carousel-button" onClick={handlePrev}>←</button>
+        <div className="carousel-flex">
+          {renderSchema(-1)}
+          {renderSchema(0)}
+          {renderSchema(1)}
+        </div>
+        <button className="carousel-button" onClick={handleNext}>→</button>
+      </div>
 
-      <button onClick={handleConfirm}>Confirmar</button>
+      <button className="botao-selecionar" onClick={handleSelect}>Selecionar</button>
     </div>
   );
 }

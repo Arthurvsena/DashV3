@@ -21,24 +21,39 @@ def gerar_token(data: dict):
 # 🔍 Verifica token Bearer
 def verify_token(request: Request):
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
-    payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
     usuario = payload.get("sub")
+    schema_original = payload.get("schema")  # ✅ salva schema atual do token
 
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT modulos_ativos FROM public.usuarios WHERE usuario = %s", (usuario,))
+    cursor.execute("SET search_path TO public;")
+    cursor.execute("""
+        SELECT modulos_ativos, schemas_autorizados
+        FROM usuarios
+        WHERE usuario = %s
+    """, (usuario,))
     resultado = cursor.fetchone()
-
     conn.close()
 
-    if resultado and resultado[0]:
-        payload["modulos_ativos"] = resultado[0]  # array de textos
+    if resultado:
+        modulos, schemas = resultado
+        payload["modulos_ativos"] = modulos
+        payload["schemas_autorizados"] = schemas
+
+    # ✅ RESTAURA schema original (se vier do token JWT selecionado)
+    if schema_original:
+        payload["schema"] = schema_original
 
     return payload
 @router.post("/login")
 def login(request: Request, data: dict = Body(...)):
-    from sqlalchemy import text
+    
     username = data.get("username")
     password = data.get("password")
 
@@ -46,15 +61,21 @@ def login(request: Request, data: dict = Body(...)):
         raise HTTPException(status_code=400, detail="Usuário e senha são obrigatórios.")
 
     # 1️⃣ Login como master no schema public
+    # 1️⃣ Login como master no schema public
     try:
-        conn = get_connection(schema="public")
+        conn = get_connection()
         cur = conn.cursor()
+        cur.execute("SET search_path TO public;")  # 🔐 Garante o schema correto
+
         cur.execute("""
             SELECT usuario, senha_hash, is_master, schemas_autorizados, modulos_ativos 
             FROM usuarios 
             WHERE usuario = %s
         """, (username,))
         user = cur.fetchone()
+
+        print("🔎 Resultado login master:", user)
+
         cur.close()
         conn.close()
 
@@ -76,7 +97,8 @@ def login(request: Request, data: dict = Body(...)):
                 "schemas": schemas
             }
     except Exception as e:
-        print("Erro ao verificar no public:", e)
+        print("❌ Erro ao verificar no public:", e)
+
 
     # 2️⃣ Login como funcionário em schemas
     try:
@@ -102,20 +124,20 @@ def login(request: Request, data: dict = Body(...)):
                 conn.close()
 
                 if user and verify_password(password, user[1]):
-                    modulos_ativos = list(user[3]) if user[3] else []
+                    schemas = list(user[3]) if user[3] else []
+                    modulos_ativos = list(user[4]) if user[4] else []
 
                     token = gerar_token({
                         "sub": user[0],
-                        "schema": schema,
                         "is_master": user[2],
-                        "schemas_autorizados": [schema],
+                        "schemas_autorizados": schemas,
                         "modulos_ativos": modulos_ativos
                     })
 
                     return {
                         "access_token": token,
                         "token_type": "bearer",
-                        "schemas": [schema]
+                        "schemas": schemas
                     }
 
             except Exception as inner:
@@ -126,16 +148,18 @@ def login(request: Request, data: dict = Body(...)):
 
     raise HTTPException(status_code=401, detail="Usuário ou senha incorretos.")
 
-# 📥 Lista schemas autorizados do token
 @router.get("/schemas")
 def listar_schemas(request: Request):
-    payload = verify_token(request)
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
     return payload.get("schemas_autorizados", [])
 
 # 🔄 Seleciona o schema após login e retorna novo token com schema definido
 @router.post("/auth/select-schema")
 def selecionar_schema(request: Request, data: dict = Body(...)):
-    payload = verify_token(request)
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+
     schema = data.get("schema")
 
     if not schema or schema not in payload.get("schemas_autorizados", []):

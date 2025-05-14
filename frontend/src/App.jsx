@@ -2,12 +2,13 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import MasterPanel from "./pages/MasterPanel";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SelectSchema from "./pages/SelectSchema";
 import LayoutPrivate from "./components/layout/LayoutPrivate";
 import Produtos from "./pages/Produtos";
 import Calculadora from './pages/Calculadora';
+import Home from "./pages/Home";
+
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
+
               <LayoutPrivate showDateFilter={true} />
             </ProtectedRoute>
           }
@@ -43,7 +45,7 @@ function App() {
         >
           <Route index element={<Produtos />} />
         </Route>
-        
+
         <Route
           path="/vendas"
           element={
@@ -75,24 +77,15 @@ function App() {
           }
         />
         <Route
-          path="/master"
-          element={
-            <ProtectedRoute>
-              <LayoutPrivate showDateFilter={false}>
-                <MasterPanel />
-              </LayoutPrivate>
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/"
           element={
             <ProtectedRoute>
-              <LayoutPrivate showDateFilter={true}>
-              </LayoutPrivate>
+              <LayoutPrivate />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<Home />} />
+        </Route>
         <Route
           path="/calculadora"
           element={

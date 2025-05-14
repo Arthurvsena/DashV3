@@ -154,6 +154,14 @@
   color: #f1f1f1;
 }
 
+.scroll-card {
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 8px; /* espaço para scroll */
+  scrollbar-width: thin;
+  scrollbar-color: #888 transparent;
+}
+
 /* Fade In Animation */
 @keyframes fadeIn {
   from {

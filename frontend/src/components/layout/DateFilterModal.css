@@ -1,0 +1,192 @@
+/* Fundo escurecido por trás do modal */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Caixa principal do modal */
+.modal-content {
+    background: linear-gradient(135deg, #1f1f2e, #2a2a3c);
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    width: 100%;
+    max-width: 460px;
+    color: white;
+    animation: fadeInUp 0.4s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Título */
+.modal-content h2 {
+    margin-bottom: 1.2rem;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #f1f1f1;
+    text-align: center;
+}
+
+/* Calendário dark customizado */
+.dark-calendar {
+    width: 100% !important;
+    display: flex;
+    justify-content: center;
+}
+
+.dark-calendar .react-datepicker {
+    width: 100%;
+}
+
+.dark-calendar .react-datepicker__month-container {
+    background-color: #242435 !important;
+    width: 100%;
+}
+
+.dark-calendar .react-datepicker__header {
+    background-color: #2a2a3c;
+    border-bottom: 1px solid #4b5563;
+    padding-top: 1rem;
+    text-align: center;
+}
+
+/* Textos */
+.dark-calendar .react-datepicker__day-name,
+.dark-calendar .react-datepicker__day {
+    color: #d1d5db;
+}
+
+.dark-calendar .react-datepicker__day--disabled {
+    color: #6b7280;
+    opacity: 0.4;
+}
+
+/* Dias selecionados e intervalo */
+.dark-calendar .react-datepicker__day--selected,
+.dark-calendar .react-datepicker__day--in-selecting-range,
+.dark-calendar .react-datepicker__day--in-range {
+    background-color: #8b5cf6;
+    color: white;
+    border-radius: 6px;
+}
+
+/* Hover nos dias */
+.dark-calendar .react-datepicker__day:hover {
+    background-color: #6366f1;
+    color: white;
+    border-radius: 6px;
+}
+
+/* Setas de navegação */
+
+/* Dropdowns mês e ano */
+.dark-calendar .react-datepicker__current-month,
+.dark-calendar .react-datepicker__month-dropdown,
+.dark-calendar .react-datepicker__year-dropdown,
+.dark-calendar .react-datepicker__month-read-view,
+.dark-calendar .react-datepicker__year-read-view {
+    background-color: #2a2a3c;
+    color: #f1f1f1;
+    border-radius: 6px;
+}
+
+.dark-calendar .react-datepicker__month-dropdown,
+.dark-calendar .react-datepicker__year-dropdown {
+    background-color: #1f1f2e;
+    border: 1px solid #4b5563;
+}
+
+.dark-calendar .react-datepicker__month-option,
+.dark-calendar .react-datepicker__year-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: #f1f1f1;
+}
+
+.dark-calendar .react-datepicker__month-option:hover,
+.dark-calendar .react-datepicker__year-option:hover {
+    background-color: #4f46e5;
+    color: white;
+}
+
+/* Dias fora do mês atual (cinza suave) */
+.dark-calendar .react-datepicker__day--outside-month {
+    color: #6b7280;
+    opacity: 0.4;
+}
+
+/* Desabilitados */
+.dark-calendar .react-datepicker__day--disabled {
+    color: #6b7280;
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Duração filtrada */
+.duracao-filtrada {
+    margin-top: 1.2rem;
+    font-size: 0.95rem;
+    color: #cbd5e1;
+    text-align: center;
+    width: 100%;
+    font-weight: 500;
+}
+
+/* Botões */
+.modal-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    margin-top: 1.5rem;
+}
+
+.btn-cancel,
+.btn-confirm {
+    padding: 0.6rem 1.4rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: none;
+    transition: 0.2s ease;
+}
+
+.btn-cancel {
+    background-color: #4b5563;
+    color: white;
+}
+
+.btn-cancel:hover {
+    background-color: #374151;
+}
+
+.btn-confirm {
+    background: linear-gradient(to right, #6366f1, #8b5cf6);
+    color: white;
+}
+
+.btn-confirm:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+
+/* Animação suave */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
