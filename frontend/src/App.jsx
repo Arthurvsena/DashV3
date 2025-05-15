@@ -8,6 +8,8 @@ import LayoutPrivate from "./components/layout/LayoutPrivate";
 import Produtos from "./pages/Produtos";
 import Calculadora from './pages/Calculadora';
 import Home from "./pages/Home";
+import Config from './pages/Config';
+
 
 
 function App() {
@@ -23,6 +25,16 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/config"
+          element={
+            <ProtectedRoute>
+              <LayoutPrivate showDateFilter={false} />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Config />} />
+        </Route>
         <Route
           path="/dashboard"
           element={

@@ -1,0 +1,228 @@
+/* Config.css */
+
+.config-container {
+  padding: 2rem;
+  color: white;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(135deg, #5f5ce0, #8f6be8);
+  border-radius: 10px;
+}
+
+.config-container h1 {
+  font-size: 2em;
+  font-weight: bolder;
+}
+
+.config-title {
+  font-size: 2.2rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+}
+
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.config-card {
+  background: #1e1e2f;
+  border-radius: 12px;
+  padding: 2rem 1rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.config-card h3 {
+  font-size: 1.5em;
+  font-weight: bolder;
+  margin-bottom: 2px;
+}
+
+.config-card h2 {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.config-card h3 {
+  margin: 0.5rem 0;
+}
+
+.config-card p {
+  color: #ccc;
+  margin: 0.2rem 0;
+  font-size: 0.9rem;
+}
+
+.preco {
+  font-size: 0.7em !important;
+}
+
+.config-card.usuarios {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 80px;
+}
+
+.config-card.empresa {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.button-row {
+  display: flex;
+  flex: wrap;
+  flex-direction: column;
+}
+
+.verde {
+  color: green;
+  font-weight: bolder;
+}
+
+.plan-name {
+  color: #9370ff;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.plan-price {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-top: 0.3rem;
+}
+
+.plan-sub {
+  font-style: italic;
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.btn-upgrade {
+  margin-top: 1rem;
+  padding: 0.6rem 1.5rem;
+  background: linear-gradient(to right, #3a84ff, #d56cff);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-upgrade:hover {
+  opacity: 0.9;
+}
+
+.user-table {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: collapse;
+}
+
+.user-table th,
+.user-table td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+}
+
+.user-table th {
+  color: #aaa;
+  font-weight: 500;
+}
+
+.user-table td i {
+  cursor: pointer;
+  margin-left: 0.5rem;
+  color: #ccc;
+}
+
+.btn-cadastrar {
+  margin-top: 1rem;
+  padding: 0.5rem 1.2rem;
+  background: linear-gradient(to right, #3a84ff, #d56cff);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.config-footer {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+
+.config-footer .config-card {
+  text-align: center;
+}
+
+.config-footer .config-card:hover {
+  background: #26263d;
+  transition: background 0.2s ease-in-out;
+}
+
+.config-footer button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 2rem;
+  margin-top: 1rem;
+  cursor: pointer;
+}
+
+.token-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 10, 10, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99;
+}
+
+.token-modal {
+  background: #1e1e2f;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 400px;
+  text-align: center;
+}
+
+.token-modal input {
+  width: 100%;
+  padding: 0.7rem;
+  margin: 1rem 0;
+  border: none;
+  border-radius: 6px;
+  background: #2b2b40;
+  color: white;
+}
+
+.token-modal .btn-save,
+.token-modal .btn-cancel {
+  padding: 0.5rem 1.2rem;
+  margin: 0.5rem;
+  border-radius: 6px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.token-modal .btn-save {
+  background: linear-gradient(to right, #3a84ff, #d56cff);
+  color: white;
+}
+
+.token-modal .btn-cancel {
+  background: #444;
+  color: white;
+}

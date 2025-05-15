@@ -22,8 +22,8 @@ export default function Home() {
         <div className="home-wrapper">
             <div className="home-header">
                 <div>
-                    <h1>Bem vindo Seller</h1>
-                    <p className="subtitle">Essa é a sua central</p>
+                    <h1>Bem vindo Seller!</h1>
+                    <p className="subtitle">Essa é a sua central.</p>
                 </div>
                 <button className="config-button" onClick={() => navigate("/config")}>
                     <i className="fa-solid fa-gear"></i>
@@ -35,7 +35,7 @@ export default function Home() {
                     <h3>Conheça a plataforma:</h3>
                     <div className="video-wrapper">
                         <iframe
-                            src="https://www.youtube.com/embed/r3bsDYfr6tM?si=pOqHKSvnzuIMbLDD"
+                            src="https://www.youtube.com/embed/uitLiLyo0IA?si=vGvO7BnCnUpMAorB"
                             title="Video institucional"
                             allowFullScreen
                         ></iframe>
