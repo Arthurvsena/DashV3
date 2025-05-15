@@ -9,6 +9,7 @@ import Produtos from "./pages/Produtos";
 import Calculadora from './pages/Calculadora';
 import Home from "./pages/Home";
 import Config from './pages/Config';
+import Atividades from "./pages/Atividades";
 
 
 
@@ -78,6 +79,16 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/atividades"
+          element={
+            <ProtectedRoute>
+              <LayoutPrivate showDateFilter={false} />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Atividades />} />
+        </Route>
         <Route
           path="/perfil"
           element={
